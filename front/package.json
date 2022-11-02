@@ -13,6 +13,7 @@
     "http": "^0.0.1-security",
     "https-browserify": "^1.0.0",
     "naive-ui": "^2.33.5",
+    "prettier": "^2.7.1",
     "stream": "^0.0.2",
     "stream-http": "^3.2.0",
     "url": "^0.11.0",

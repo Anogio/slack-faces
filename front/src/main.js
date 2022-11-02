@@ -1,17 +1,19 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from "vue";
+import App from "./App.vue";
 
 import {
   // create naive ui
   create,
   // component
-    NSelect, NSpace
-} from 'naive-ui'
+  NSelect,
+  NButton,
+  NTag,
+} from "naive-ui";
 
 const naive = create({
-  components: [NSelect, NSpace]
-})
+  components: [NSelect, NButton, NTag],
+});
 
-const app = createApp(App)
-app.use(naive)
-app.mount('#app')
+const app = createApp(App);
+app.use(naive);
+app.mount("#app");
