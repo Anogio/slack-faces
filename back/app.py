@@ -19,7 +19,9 @@ def puzzle():
         abort(500, "Failed to get Slack users")
 
     response_json = response.json()
-    users = [{"name": u["real_name"], "picture": u["profile"]["image_192"]} for u in response_json["members"]
+    users = [{"name": u["real_name"], "pictures": [u["profile"][f"image_{resolution}"]
+                                                   for resolution in [24, 32, 48, 72, 192]]}
+                for u in response_json["members"]
              if not u["deleted"] and not u["is_bot"]  and not u["profile"].get("always_active")
              and u["profile"].get("is_custom_image")]
 

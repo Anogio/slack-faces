@@ -8,10 +8,12 @@ import {
   NSelect,
   NButton,
   NTag,
+  NStatistic,
+  NIcon,
 } from "naive-ui";
 
 const naive = create({
-  components: [NSelect, NButton, NTag],
+  components: [NSelect, NButton, NTag, NStatistic, NIcon],
 });
 
 const app = createApp(App);

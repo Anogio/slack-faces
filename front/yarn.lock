@@ -1331,6 +1331,11 @@
   dependencies:
     "@types/node" "*"
 
+"@vicons/ionicons5@^0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@vicons/ionicons5/-/ionicons5-0.12.0.tgz#c39fda04420dfae3b58053faf8aaf3555253299d"
+  integrity sha512-Iy1EUVRpX0WWxeu1VIReR1zsZLMc4fqpt223czR+Rpnrwu7pt46nbnC2ycO7ItI/uqDLJxnbcMC7FujKs9IfFA==
+
 "@vue/babel-helper-vue-jsx-merge-props@^1.4.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@vue/babel-helper-vue-jsx-merge-props/-/babel-helper-vue-jsx-merge-props-1.4.0.tgz#8d53a1e21347db8edbe54d339902583176de09f2"
@@ -5962,6 +5967,11 @@ vue-hot-reload-api@^2.3.0:
   version "2.3.4"
   resolved "https://registry.yarnpkg.com/vue-hot-reload-api/-/vue-hot-reload-api-2.3.4.tgz#532955cc1eb208a3d990b3a9f9a70574657e08f2"
   integrity sha512-BXq3jwIagosjgNVae6tkHzzIk6a8MHFtzAdwhnV5VlvPTFxDCvIttgSiHWjdGoTJvXtmRu5HacExfdarRcFhog==
+
+vue-load-image@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/vue-load-image/-/vue-load-image-1.1.0.tgz#bb7897064fb3cfa01abed07f88a24172bbc92990"
+  integrity sha512-OYlK7FBSYY6ksxWwty5oeXmPWbvMaZS6fuVcLtEmsGAeH/7dN0ZxicJyb9R+kCO0gCk1fqFJmo4ovqAOn5hupw==
 
 vue-loader@^17.0.0:
   version "17.0.1"
