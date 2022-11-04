@@ -1,16 +1,16 @@
 <template>
-  <Main/>
+  <FacedleMain />
 </template>
 
 <script>
-import Main from './components/Main.vue'
+import FacedleMain from "./components/Main.vue";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
-    Main
-  }
-}
+    FacedleMain,
+  },
+};
 </script>
 
 <style>

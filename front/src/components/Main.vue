@@ -18,13 +18,7 @@
             <div v-for="(g, i) in p.pastGuesses" :key="i">
               <n-tag
                 :style="{ margin: '5px' }"
-                :type="
-                  g.match === 'exact'
-                    ? 'success'
-                    : g.match === 'partial'
-                    ? 'warning'
-                    : 'error'
-                "
+                :type="guessTagType(g.match)"
                 :bordered="false"
               >
                 {{ g.guess }}
@@ -84,15 +78,21 @@ import { Clipboard } from "@vicons/ionicons5";
 import Loading from "vue-loading-overlay";
 import "vue-loading-overlay/dist/css/index.css";
 
+const EXACT_MATCH = "exact";
+const PARTIAL_MATCH = "partial";
+const NO_MATCH = "none";
+
+const SERVER_URL = "http://127.0.0.1:5000";
+
 export default {
-  name: "HelloWorld",
+  name: "FacedleMain",
   components: { Clipboard, Loading },
   data: () => {
     return {
+      maxTries: 5,
       puzzle: [],
       options: [],
       gameWon: false,
-      maxTries: 5,
       nTries: 0,
       summary: "",
       shared: false,
@@ -101,7 +101,7 @@ export default {
     };
   },
   async created() {
-    const response = await fetch("http://127.0.0.1:5000/puzzle");
+    const response = await fetch(`${SERVER_URL}/puzzle`);
     const payload = await response.json();
     this.puzzle = payload.puzzle.map((el) => ({
       pictureUrl: el.picture,
@@ -134,9 +134,16 @@ export default {
   },
   methods: {
     pixelatedPictureUrl(baseUrl, targetResolution) {
-      return `http://127.0.0.1:5000/pixelated_image?image_url=${encodeURIComponent(
+      return `${SERVER_URL}/pixelated_image?image_url=${encodeURIComponent(
         baseUrl
       )}&target_resolution=${targetResolution}`;
+    },
+    guessTagType(match) {
+      return match === EXACT_MATCH
+        ? "success"
+        : match === PARTIAL_MATCH
+        ? "warning"
+        : "error";
     },
     handleSubmit() {
       this.nTries += 1;
@@ -148,12 +155,12 @@ export default {
       this.puzzle.forEach((p) => {
         match = null;
         if (p.guess === p.trueName) {
-          match = "exact";
+          match = EXACT_MATCH;
         } else if (namesToGuess.includes(p.guess)) {
-          match = "partial";
+          match = PARTIAL_MATCH;
           success = false;
         } else {
-          match = "none";
+          match = NO_MATCH;
           success = false;
         }
         p.pastGuesses.push({ match: match, guess: p.guess });
@@ -171,14 +178,18 @@ export default {
       }
     },
     computeSummary() {
-      let summaryString = `Doctrine Facedle ${this.today} ${
+      let summaryString = `Doctrine Facedle ${this.today} - ${
         this.gameWon ? this.nTries : "💀"
       }/${this.maxTries}\n\n`;
       for (let i = 0; i < this.nTries; i++) {
         this.puzzle.forEach((p) => {
           let match = p.pastGuesses[i].match;
           let marker =
-            match === "exact" ? "🟩" : match === "partial" ? "🟨" : "⬛";
+            match === EXACT_MATCH
+              ? "🟩"
+              : match === PARTIAL_MATCH
+              ? "🟨"
+              : "⬛";
           summaryString = summaryString + marker;
         });
         summaryString = summaryString + (i === this.nTries - 1 ? "" : "\n");
