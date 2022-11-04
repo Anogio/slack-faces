@@ -11,13 +11,8 @@
         <tr>
           <td v-for="(p, index) in puzzle" :key="index">
             <img
-              :src="
-                p.pictures[
-                  finished
-                    ? p.pictures.length - 1
-                    : Math.min(nTries, maxTries - 1)
-                ]
-              "
+              alt="mystery slack profile pic"
+              :src="p.pixelatedPictureUrl"
               :style="{ width: '200px', height: '200px' }"
             />
             <div v-for="(g, i) in p.pastGuesses" :key="i">
@@ -68,7 +63,7 @@
       </div>
       <div v-else>
         <n-statistic
-          :value="nTries"
+          :value="nTries.toString()"
           :style="{
             display: 'inline-block',
             marginRight: '10px',
@@ -102,13 +97,18 @@ export default {
       summary: "",
       shared: false,
       loaded: false,
+      imgResolutions: [8, 15, 25, 50, 198],
     };
   },
   async created() {
     const response = await fetch("http://127.0.0.1:5000/puzzle");
     const payload = await response.json();
     this.puzzle = payload.puzzle.map((el) => ({
-      pictures: el.pictures,
+      pictureUrl: el.picture,
+      pixelatedPictureUrl: this.pixelatedPictureUrl(
+        el.picture,
+        this.imgResolutions[0]
+      ),
       trueName: el.name,
       guess: null,
       pastGuesses: [],
@@ -133,11 +133,20 @@ export default {
     },
   },
   methods: {
+    pixelatedPictureUrl(baseUrl, targetResolution) {
+      return `http://127.0.0.1:5000/pixelated_image?image_url=${encodeURIComponent(
+        baseUrl
+      )}&target_resolution=${targetResolution}`;
+    },
     handleSubmit() {
-      var success = true;
+      this.nTries += 1;
+
+      let success = true;
       const namesToGuess = this.puzzle.map((p) => p.trueName);
+
+      let match = null;
       this.puzzle.forEach((p) => {
-        var match = null;
+        match = null;
         if (p.guess === p.trueName) {
           match = "exact";
         } else if (namesToGuess.includes(p.guess)) {
@@ -147,25 +156,28 @@ export default {
           match = "none";
           success = false;
         }
-
         p.pastGuesses.push({ match: match, guess: p.guess });
         p.guess = null;
+
+        p.pixelatedPictureUrl = this.pixelatedPictureUrl(
+          p.pictureUrl,
+          this.imgResolutions[Math.min(this.nTries, this.maxTries - 1)]
+        );
       });
       this.gameWon = success;
-      this.nTries += 1;
 
       if (this.finished) {
         this.summary = this.computeSummary();
       }
     },
     computeSummary() {
-      var summaryString = `Doctrine Facedle ${this.today} ${
+      let summaryString = `Doctrine Facedle ${this.today} ${
         this.gameWon ? this.nTries : "💀"
       }/${this.maxTries}\n\n`;
       for (let i = 0; i < this.nTries; i++) {
         this.puzzle.forEach((p) => {
-          var match = p.pastGuesses[i].match;
-          var marker =
+          let match = p.pastGuesses[i].match;
+          let marker =
             match === "exact" ? "🟩" : match === "partial" ? "🟨" : "⬛";
           summaryString = summaryString + marker;
         });
@@ -174,7 +186,7 @@ export default {
       if (this.gameWon) {
         summaryString = summaryString + "🎉";
       }
-      summaryString = summaryString + "\n\nhttp://www.facedle.anog.fr";
+      summaryString = summaryString + "\n\nhttps://www.facedle.anog.fr";
       return summaryString;
     },
     copyShare() {

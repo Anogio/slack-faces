@@ -1,6 +1,6 @@
 import flask
 from flask import Flask
-from flask import abort, request, send_file, Response
+from flask import abort, request, send_file
 import requests
 import random
 import datetime as dt
