@@ -178,7 +178,7 @@ export default {
       }
     },
     computeSummary() {
-      let summaryString = `Doctrine Facedle ${this.today} - ${
+      let summaryString = `Facedle ${this.today} - ${
         this.gameWon ? this.nTries : "💀"
       }/${this.maxTries}\n\n`;
       for (let i = 0; i < this.nTries; i++) {
