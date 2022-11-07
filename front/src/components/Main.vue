@@ -164,7 +164,9 @@ export default {
           success = false;
         }
         p.pastGuesses.push({ match: match, guess: p.guess });
-        p.guess = null;
+        if (match !== EXACT_MATCH) {
+          p.guess = null;
+        }
 
         p.pixelatedPictureUrl = this.pixelatedPictureUrl(
           p.pictureUrl,
@@ -208,5 +210,4 @@ export default {
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped></style>
