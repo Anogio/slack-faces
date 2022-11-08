@@ -170,7 +170,9 @@ export default {
 
         p.pixelatedPictureUrl = this.pixelatedPictureUrl(
           p.pictureUrl,
-          this.imgResolutions[Math.min(this.nTries, this.maxTries - 1)]
+          this.imgResolutions[
+            Math.min(success ? this.maxTries : this.nTries, this.maxTries - 1)
+          ]
         );
       });
       this.gameWon = success;
