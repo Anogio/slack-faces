@@ -42,6 +42,7 @@
               :style="{ maxWidth: '200px', margin: 'auto' }"
               placeholder="Please select a name"
               :options="options"
+              clearable
               filterable
               :filter="nameFilter"
             />
