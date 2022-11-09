@@ -171,7 +171,10 @@ export default {
         p.pixelatedPictureUrl = this.pixelatedPictureUrl(
           p.pictureUrl,
           this.imgResolutions[
-            Math.min(success ? this.maxTries : this.nTries, this.maxTries - 1)
+            Math.min(
+              match === EXACT_MATCH ? this.maxTries : this.nTries,
+              this.maxTries - 1
+            )
           ]
         );
       });
