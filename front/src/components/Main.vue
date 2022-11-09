@@ -34,11 +34,16 @@
             <n-select
               v-if="!finished"
               :value="p.guess"
+              :disabled="
+                p.pastGuesses.length > 0 &&
+                p.pastGuesses[p.pastGuesses.length - 1].match === EXACT_MATCH
+              "
               @update:value="(value) => (p.guess = value)"
               :style="{ maxWidth: '200px', margin: 'auto' }"
               placeholder="Please select a name"
               :options="options"
               filterable
+              :filter="nameFilter"
             />
           </td>
         </tr>
@@ -98,6 +103,7 @@ export default {
       shared: false,
       loaded: false,
       imgResolutions: [8, 15, 25, 50, 198],
+      EXACT_MATCH,
     };
   },
   async created() {
@@ -210,6 +216,16 @@ export default {
     copyShare() {
       navigator.clipboard.writeText(this.summary);
       this.shared = true;
+    },
+    normalize(text) {
+      return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    },
+    nameFilter(pattern, option) {
+      console.log(pattern, option);
+      return this.normalize(option.value).startsWith(this.normalize(pattern));
     },
   },
 };
