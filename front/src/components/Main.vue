@@ -51,19 +51,18 @@
       </table>
       <br />
       <div v-if="finished">
-        <h3 :style="{ margin: '0px' }">
+        <h3 :style="{ margin: '4px' }">
           {{
             gameWon
               ? "Congratulations ! You won. See you tomorrow :)"
               : "You lost ! Try again tomorrow :)"
           }}
         </h3>
-        <br />
-        <n-button type="info" @click="copyShare">
+        <n-button type="info" @click="copyShare" size="large" round>
           <template #icon>
             <n-icon> <clipboard /> </n-icon>
           </template>
-          {{ shared ? "Copied !" : "Share" }}</n-button
+          {{ shared ? "Copied !" : "Share the results" }}</n-button
         >
       </div>
       <div v-else>
