@@ -51,8 +51,13 @@
       </table>
       <br />
       <div v-if="finished">
-        <div v-if="gameWon">Congratulations ! You won. See you tomorrow :)</div>
-        <div v-else>You lost ! Try again tomorrow :)</div>
+        <h3 :style="{ margin: '0px' }">
+          {{
+            gameWon
+              ? "Congratulations ! You won. See you tomorrow :)"
+              : "You lost ! Try again tomorrow :)"
+          }}
+        </h3>
         <br />
         <n-button type="info" @click="copyShare">
           <template #icon>
@@ -90,53 +95,74 @@ const NO_MATCH = "none";
 
 const SERVER_URL = "http://127.0.0.1:5000";
 
+function today() {
+  const date = new Date();
+
+  let day = date.getDate();
+  let month = date.getMonth() + 1;
+  let year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 export default {
   name: "FacedleMain",
   components: { Clipboard, Loading },
   data: () => {
     return {
+      // These are constants for the game rules
       maxTries: 5,
-      puzzle: [],
-      options: [],
-      gameWon: false,
-      nTries: 0,
-      summary: "",
-      shared: false,
-      loaded: false,
       imgResolutions: [8, 15, 25, 50, 198],
       EXACT_MATCH,
+      // These help maintain some basic state but are reset on every app load
+      dayOnAppLoad: today(),
+      shared: false,
+      loaded: false,
+      // These are the game state, saved after each guess in localStorage, and loaded if they are from today
+      puzzle: [],
+      options: [],
     };
   },
   async created() {
-    const response = await fetch(`${SERVER_URL}/puzzle`);
-    const payload = await response.json();
-    this.puzzle = payload.puzzle.map((el) => ({
-      pictureUrl: el.picture,
-      pixelatedPictureUrl: this.pixelatedPictureUrl(
-        el.picture,
-        this.imgResolutions[0]
-      ),
-      trueName: el.name,
-      guess: null,
-      pastGuesses: [],
-    }));
-    this.options = payload.all_names.map((el) => ({ label: el, value: el }));
+    const existingState = this.loadState();
+    if (existingState) {
+      this.puzzle = existingState.puzzle;
+      this.options = existingState.options;
+    } else {
+      const response = await fetch(`${SERVER_URL}/puzzle`);
+      const payload = await response.json();
+      this.puzzle = payload.puzzle.map((el) => ({
+        pictureUrl: el.picture,
+        pixelatedPictureUrl: this.pixelatedPictureUrl(
+          el.picture,
+          this.imgResolutions[0]
+        ),
+        trueName: el.name,
+        guess: null,
+        pastGuesses: [],
+      }));
+      this.options = payload.all_names.map((el) => ({ label: el, value: el }));
+    }
     this.loaded = true;
   },
   computed: {
+    nTries() {
+      return this.puzzle.length ? this.puzzle[0].pastGuesses.length : 0;
+    },
+    gameWon() {
+      return (
+        this.puzzle.length &&
+        this.puzzle.every(
+          (el) =>
+            el.pastGuesses.length &&
+            el.pastGuesses[el.pastGuesses.length - 1].match === EXACT_MATCH
+        )
+      );
+    },
     canSubmit() {
       return this.puzzle.every((el) => el.guess !== null);
     },
     finished() {
       return this.gameWon || this.nTries === this.maxTries;
-    },
-    today() {
-      const date = new Date();
-
-      let day = date.getDate();
-      let month = date.getMonth() + 1;
-      let year = date.getFullYear();
-      return `${day}/${month}/${year}`;
     },
   },
   methods: {
@@ -153,9 +179,6 @@ export default {
         : "error";
     },
     handleSubmit() {
-      this.nTries += 1;
-
-      let success = true;
       const namesToGuess = this.puzzle.map((p) => p.trueName);
 
       let match = null;
@@ -165,10 +188,8 @@ export default {
           match = EXACT_MATCH;
         } else if (namesToGuess.includes(p.guess)) {
           match = PARTIAL_MATCH;
-          success = false;
         } else {
           match = NO_MATCH;
-          success = false;
         }
         p.pastGuesses.push({ match: match, guess: p.guess });
         if (match !== EXACT_MATCH) {
@@ -184,15 +205,11 @@ export default {
             )
           ]
         );
+        this.storeState();
       });
-      this.gameWon = success;
-
-      if (this.finished) {
-        this.summary = this.computeSummary();
-      }
     },
     computeSummary() {
-      let summaryString = `Facedle ${this.today} - ${
+      let summaryString = `Facedle ${this.dayOnAppLoad} - ${
         this.gameWon ? this.nTries : "💀"
       }/${this.maxTries}\n\n`;
       for (let i = 0; i < this.nTries; i++) {
@@ -215,7 +232,7 @@ export default {
       return summaryString;
     },
     copyShare() {
-      navigator.clipboard.writeText(this.summary);
+      navigator.clipboard.writeText(this.computeSummary());
       this.shared = true;
     },
     normalize(text) {
@@ -225,8 +242,20 @@ export default {
         .replace(/[\u0300-\u036f]/g, "");
     },
     nameFilter(pattern, option) {
-      console.log(pattern, option);
       return this.normalize(option.value).startsWith(this.normalize(pattern));
+    },
+    loadState() {
+      const state = localStorage.getItem(this.dayOnAppLoad);
+      return state ? JSON.parse(state) : null;
+    },
+    storeState() {
+      localStorage.setItem(
+        this.dayOnAppLoad,
+        JSON.stringify({
+          puzzle: this.puzzle,
+          options: this.options,
+        })
+      );
     },
   },
 };
