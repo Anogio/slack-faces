@@ -10,12 +10,15 @@ import {
   NTag,
   NStatistic,
   NIcon,
+  NAlert,
 } from "naive-ui";
 
 const naive = create({
-  components: [NSelect, NButton, NTag, NStatistic, NIcon],
+  components: [NSelect, NButton, NTag, NStatistic, NIcon, NAlert],
 });
 
 const app = createApp(App);
 app.use(naive);
 app.mount("#app");
+
+document.title = "Facedle";

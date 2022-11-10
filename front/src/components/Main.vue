@@ -1,7 +1,16 @@
 <template>
   <div>
-    <loading :active="!loaded" :is-full-page="false" />
+    <loading :active="!loaded && !loadFailed" :is-full-page="false" />
     <h1>Facedle</h1>
+    <div v-if="loadFailed">
+      <n-alert
+        title="Could not load puzzle"
+        type="error"
+        :style="{ maxWidth: '50%', margin: 'auto' }"
+      >
+        Check that your VPN is enabled
+      </n-alert>
+    </div>
     <template v-if="loaded">
       <h3>
         Guess which of your coworkers are on the pictures ! They will get less
@@ -116,6 +125,7 @@ export default {
       dayOnAppLoad: today(),
       shared: false,
       loaded: false,
+      loadFailed: false,
       // These are the game state, saved after each guess in localStorage, and loaded if they are from today
       puzzle: [],
       options: [],
@@ -127,7 +137,15 @@ export default {
       this.puzzle = existingState.puzzle;
       this.options = existingState.options;
     } else {
-      const response = await fetch(`${SERVER_URL}/puzzle`);
+      const response = await this.fetchWithTimeout(
+        `${SERVER_URL}/puzzle`,
+        5000
+      );
+      console.log(response);
+      if (response === undefined) {
+        this.loadFailed = true;
+        return;
+      }
       const payload = await response.json();
       this.puzzle = payload.puzzle.map((el) => ({
         pictureUrl: el.picture,
@@ -233,6 +251,23 @@ export default {
     copyShare() {
       navigator.clipboard.writeText(this.computeSummary());
       this.shared = true;
+    },
+    async fetchWithTimeout(url, ms, { ...options } = {}) {
+      let timeout;
+      let result;
+      try {
+        const controller = new AbortController();
+        const promise = fetch(url, { signal: controller.signal, ...options });
+        timeout = setTimeout(() => controller.abort(), ms);
+        result = await promise;
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+      }
+      return result;
     },
     normalize(text) {
       return text
