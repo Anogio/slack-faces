@@ -34,14 +34,14 @@
               </n-tag>
               <br />
             </div>
-            <div v-if="finished && !gameWon">
+            <div v-if="gameFinished && !gameWon">
               <n-tag :style="{ margin: '5px' }" type="info" :bordered="false">
                 {{ p.trueName }}
               </n-tag>
               <br />
             </div>
             <n-select
-              v-if="!finished"
+              v-if="!gameFinished"
               :value="p.guess"
               :disabled="
                 p.pastGuesses.length > 0 &&
@@ -59,7 +59,7 @@
         </tr>
       </table>
       <br />
-      <div v-if="finished">
+      <div v-if="gameFinished">
         <h3 :style="{ margin: '4px' }">
           {{
             gameWon
@@ -67,7 +67,7 @@
               : "You lost ! Try again tomorrow :)"
           }}
         </h3>
-        <n-button type="info" @click="copyShare" size="large" round>
+        <n-button type="info" @click="copyShareableSummary" size="large" round>
           <template #icon>
             <n-icon> <clipboard /> </n-icon>
           </template>
@@ -102,6 +102,7 @@ const PARTIAL_MATCH = "partial";
 const NO_MATCH = "none";
 
 const SERVER_URL = "http://127.0.0.1:5000";
+const APP_URL = "https://www.facedle.anog.fr";
 
 function today() {
   const date = new Date();
@@ -132,7 +133,7 @@ export default {
     };
   },
   async created() {
-    const existingState = this.loadState();
+    const existingState = this.loadAppState();
     if (existingState) {
       this.puzzle = existingState.puzzle;
       this.options = existingState.options;
@@ -141,7 +142,6 @@ export default {
         `${SERVER_URL}/puzzle`,
         5000
       );
-      console.log(response);
       if (response === undefined) {
         this.loadFailed = true;
         return;
@@ -162,6 +162,9 @@ export default {
     this.loaded = true;
   },
   computed: {
+    canSubmit() {
+      return this.puzzle.every((el) => el.guess !== null);
+    },
     nTries() {
       return this.puzzle.length ? this.puzzle[0].pastGuesses.length : 0;
     },
@@ -175,10 +178,7 @@ export default {
         )
       );
     },
-    canSubmit() {
-      return this.puzzle.every((el) => el.guess !== null);
-    },
-    finished() {
+    gameFinished() {
       return this.gameWon || this.nTries === this.maxTries;
     },
   },
@@ -222,7 +222,7 @@ export default {
             )
           ]
         );
-        this.storeState();
+        this.storeAppState();
       });
     },
     computeSummary() {
@@ -245,12 +245,36 @@ export default {
       if (this.gameWon) {
         summaryString = summaryString + "🎉";
       }
-      summaryString = summaryString + "\n\nhttps://www.facedle.anog.fr";
+      summaryString = summaryString + `\n\n${APP_URL}`;
       return summaryString;
     },
-    copyShare() {
+    copyShareableSummary() {
       navigator.clipboard.writeText(this.computeSummary());
       this.shared = true;
+    },
+    normalizeFilterValue(text) {
+      return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    },
+    nameFilter(pattern, option) {
+      return this.normalizeFilterValue(option.value).startsWith(
+        this.normalizeFilterValue(pattern)
+      );
+    },
+    loadAppState() {
+      const state = localStorage.getItem(this.dayOnAppLoad);
+      return state ? JSON.parse(state) : null;
+    },
+    storeAppState() {
+      localStorage.setItem(
+        this.dayOnAppLoad,
+        JSON.stringify({
+          puzzle: this.puzzle,
+          options: this.options,
+        })
+      );
     },
     async fetchWithTimeout(url, ms, { ...options } = {}) {
       let timeout;
@@ -268,28 +292,6 @@ export default {
         }
       }
       return result;
-    },
-    normalize(text) {
-      return text
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-    },
-    nameFilter(pattern, option) {
-      return this.normalize(option.value).startsWith(this.normalize(pattern));
-    },
-    loadState() {
-      const state = localStorage.getItem(this.dayOnAppLoad);
-      return state ? JSON.parse(state) : null;
-    },
-    storeState() {
-      localStorage.setItem(
-        this.dayOnAppLoad,
-        JSON.stringify({
-          puzzle: this.puzzle,
-          options: this.options,
-        })
-      );
     },
   },
 };
