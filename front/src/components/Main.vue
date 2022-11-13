@@ -99,7 +99,6 @@ import "vue-loading-overlay/dist/css/index.css";
 
 const EXACT_MATCH = "exact";
 const PARTIAL_MATCH = "partial";
-const NO_MATCH = "none";
 
 const SERVER_URL = "http://127.0.0.1:5000";
 const APP_URL = "https://www.facedle.anog.fr";
@@ -120,7 +119,6 @@ export default {
     return {
       // These are constants for the game rules
       maxTries: 5,
-      imgResolutions: [8, 15, 25, 50, 198],
       EXACT_MATCH,
       // These help maintain some basic state but are reset on every app load
       dayOnAppLoad: today(),
@@ -147,13 +145,9 @@ export default {
         return;
       }
       const payload = await response.json();
-      this.puzzle = payload.puzzle.map((el) => ({
-        pictureUrl: el.picture,
-        pixelatedPictureUrl: this.pixelatedPictureUrl(
-          el.picture,
-          this.imgResolutions[0]
-        ),
-        trueName: el.name,
+      this.puzzle = payload.puzzle_keys.map((puzzle_key) => ({
+        pixelatedPictureUrl: this.pixelatedPictureUrl(puzzle_key),
+        puzzleKey: puzzle_key,
         guess: null,
         pastGuesses: [],
       }));
@@ -183,10 +177,8 @@ export default {
     },
   },
   methods: {
-    pixelatedPictureUrl(baseUrl, targetResolution) {
-      return `${SERVER_URL}/pixelated_image?image_url=${encodeURIComponent(
-        baseUrl
-      )}&target_resolution=${targetResolution}`;
+    pixelatedPictureUrl(puzzleKey) {
+      return `${SERVER_URL}/pixelated_image?puzzle_key=${puzzleKey}`;
     },
     guessTagType(match) {
       return match === EXACT_MATCH
@@ -195,35 +187,39 @@ export default {
         ? "warning"
         : "error";
     },
-    handleSubmit() {
-      const namesToGuess = this.puzzle.map((p) => p.trueName);
-
+    async handleSubmit() {
+      const payload = this.puzzle.map((el) => ({
+        puzzle_key: el.puzzleKey,
+        name: el.guess,
+      }));
+      const requestOptions = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      };
+      const response = await this.fetchWithTimeout(
+        `${SERVER_URL}/submit`,
+        5000,
+        requestOptions
+      );
+      if (response === undefined) {
+        this.loadFailed = true;
+        return;
+      }
+      const responsePayload = await response.json();
       let match = null;
-      this.puzzle.forEach((p) => {
-        match = null;
-        if (p.guess === p.trueName) {
-          match = EXACT_MATCH;
-        } else if (namesToGuess.includes(p.guess)) {
-          match = PARTIAL_MATCH;
-        } else {
-          match = NO_MATCH;
-        }
+      let p;
+      responsePayload.forEach((el, index) => {
+        match = el.match;
+        p = this.puzzle[index];
         p.pastGuesses.push({ match: match, guess: p.guess });
+        p.puzzleKey = el.puzzle_key;
+        p.pixelatedPictureUrl = this.pixelatedPictureUrl(el.puzzle_key);
         if (match !== EXACT_MATCH) {
           p.guess = null;
         }
-
-        p.pixelatedPictureUrl = this.pixelatedPictureUrl(
-          p.pictureUrl,
-          this.imgResolutions[
-            Math.min(
-              match === EXACT_MATCH ? this.maxTries : this.nTries,
-              this.maxTries - 1
-            )
-          ]
-        );
-        this.storeAppState();
       });
+      this.storeAppState();
     },
     computeSummary() {
       let summaryString = `Facedle ${this.dayOnAppLoad} - ${
