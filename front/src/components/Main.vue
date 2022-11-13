@@ -4,7 +4,7 @@
     <h1>Facedle</h1>
     <div v-if="loadFailed">
       <n-alert
-        title="Could not load puzzle"
+        title="Could not load game"
         type="error"
         :style="{ maxWidth: '50%', margin: 'auto' }"
       >
@@ -16,15 +16,15 @@
         Guess which of your coworkers are on the pictures ! They will get less
         pixelated after each guess.
       </h3>
-      <table id="puzzle" :style="{ width: '90%', margin: '0 auto' }">
+      <table id="game" :style="{ width: '90%', margin: '0 auto' }">
         <tr>
-          <td v-for="(p, index) in puzzle" :key="index">
+          <td v-for="(pictureToGuess, index) in localGameState" :key="index">
             <img
               alt="mystery slack profile pic"
-              :src="p.pixelatedPictureUrl"
+              :src="pictureToGuess.pixelatedPictureUrl"
               :style="{ width: '200px', height: '200px' }"
             />
-            <div v-for="(g, i) in p.pastGuesses" :key="i">
+            <div v-for="(g, i) in pictureToGuess.pastGuesses" :key="i">
               <n-tag
                 :style="{ margin: '5px' }"
                 :type="guessTagType(g.match)"
@@ -36,18 +36,20 @@
             </div>
             <div v-if="gameFinished && !gameWon">
               <n-tag :style="{ margin: '5px' }" type="info" :bordered="false">
-                {{ p.trueName }}
+                {{ pictureToGuess.trueName }}
               </n-tag>
               <br />
             </div>
             <n-select
               v-if="!gameFinished"
-              :value="p.guess"
+              :value="pictureToGuess.guess"
               :disabled="
-                p.pastGuesses.length > 0 &&
-                p.pastGuesses[p.pastGuesses.length - 1].match === EXACT_MATCH
+                pictureToGuess.pastGuesses.length > 0 &&
+                pictureToGuess.pastGuesses[
+                  pictureToGuess.pastGuesses.length - 1
+                ].match === EXACT_MATCH
               "
-              @update:value="(value) => (p.guess = value)"
+              @update:value="(value) => (pictureToGuess.guess = value)"
               :style="{ maxWidth: '200px', margin: 'auto' }"
               placeholder="Please select a name"
               :options="options"
@@ -118,7 +120,7 @@ export default {
   data: () => {
     return {
       // These are constants for the game rules
-      maxTries: 5,
+      maxTries: null,
       EXACT_MATCH,
       // These help maintain some basic state but are reset on every app load
       dayOnAppLoad: today(),
@@ -126,18 +128,20 @@ export default {
       loaded: false,
       loadFailed: false,
       // These are the game state, saved after each guess in localStorage, and loaded if they are from today
-      puzzle: [],
+      encryptedGameState: null,
+      localGameState: [],
       options: [],
     };
   },
   async created() {
     const existingState = this.loadAppState();
     if (existingState) {
-      this.puzzle = existingState.puzzle;
+      this.localGameState = existingState.localGameState;
       this.options = existingState.options;
+      this.encryptedGameState = existingState.encryptedGameState;
     } else {
       const response = await this.fetchWithTimeout(
-        `${SERVER_URL}/puzzle`,
+        `${SERVER_URL}/start_game`,
         5000
       );
       if (response === undefined) {
@@ -145,27 +149,34 @@ export default {
         return;
       }
       const payload = await response.json();
-      this.puzzle = payload.puzzle_keys.map((puzzle_key) => ({
-        pixelatedPictureUrl: this.pixelatedPictureUrl(puzzle_key),
-        puzzleKey: puzzle_key,
+      this.encryptedGameState = payload.game_state;
+      this.maxTries = payload.max_tries;
+      const nPictures = payload.n_pictures;
+      this.localGameState = [...Array(nPictures).keys()].map((index) => ({
+        pixelatedPictureUrl: this.pixelatedPictureUrl(index),
         guess: null,
         pastGuesses: [],
+        trueName: null,
       }));
-      this.options = payload.all_names.map((el) => ({ label: el, value: el }));
+      const all_names = payload.all_names;
+      all_names.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      this.options = all_names.map((el) => ({ label: el, value: el }));
     }
     this.loaded = true;
   },
   computed: {
     canSubmit() {
-      return this.puzzle.every((el) => el.guess !== null);
+      return this.localGameState.every((el) => el.guess !== null);
     },
     nTries() {
-      return this.puzzle.length ? this.puzzle[0].pastGuesses.length : 0;
+      return this.localGameState.length
+        ? this.localGameState[0].pastGuesses.length
+        : 0;
     },
     gameWon() {
       return (
-        this.puzzle.length &&
-        this.puzzle.every(
+        this.localGameState.length &&
+        this.localGameState.every(
           (el) =>
             el.pastGuesses.length &&
             el.pastGuesses[el.pastGuesses.length - 1].match === EXACT_MATCH
@@ -177,8 +188,8 @@ export default {
     },
   },
   methods: {
-    pixelatedPictureUrl(puzzleKey) {
-      return `${SERVER_URL}/pixelated_image?puzzle_key=${puzzleKey}`;
+    pixelatedPictureUrl(index) {
+      return `${SERVER_URL}/guessable_picture?game_state=${this.encryptedGameState}&picture_index=${index}`;
     },
     guessTagType(match) {
       return match === EXACT_MATCH
@@ -188,10 +199,10 @@ export default {
         : "error";
     },
     async handleSubmit() {
-      const payload = this.puzzle.map((el) => ({
-        puzzle_key: el.puzzleKey,
-        name: el.guess,
-      }));
+      const payload = {
+        game_state: this.encryptedGameState,
+        guesses: this.localGameState.map((el) => el.guess),
+      };
       const requestOptions = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -207,14 +218,14 @@ export default {
         return;
       }
       const responsePayload = await response.json();
-      let match = null;
+      this.encryptedGameState = responsePayload.game_state;
+
       let p;
-      responsePayload.forEach((el, index) => {
-        match = el.match;
-        p = this.puzzle[index];
+      responsePayload.matches.forEach((match, index) => {
+        p = this.localGameState[index];
         p.pastGuesses.push({ match: match, guess: p.guess });
-        p.puzzleKey = el.puzzle_key;
-        p.pixelatedPictureUrl = this.pixelatedPictureUrl(el.puzzle_key);
+        p.pixelatedPictureUrl = this.pixelatedPictureUrl(index);
+        p.trueName = responsePayload.solution[index];
         if (match !== EXACT_MATCH) {
           p.guess = null;
         }
@@ -226,7 +237,7 @@ export default {
         this.gameWon ? this.nTries : "💀"
       }/${this.maxTries}\n\n`;
       for (let i = 0; i < this.nTries; i++) {
-        this.puzzle.forEach((p) => {
+        this.localGameState.forEach((p) => {
           let match = p.pastGuesses[i].match;
           let marker =
             match === EXACT_MATCH
@@ -267,8 +278,10 @@ export default {
       localStorage.setItem(
         this.dayOnAppLoad,
         JSON.stringify({
-          puzzle: this.puzzle,
+          localGameState: this.localGameState,
+          gameFinished: this.gameFinished,
           options: this.options,
+          encryptedGameState: this.encryptedGameState,
         })
       );
     },

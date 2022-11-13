@@ -1,15 +1,10 @@
 <template>
-  <FacedleMain />
+  <router-view id="main" />
 </template>
 
 <script>
-import FacedleMain from "./components/Main.vue";
-
 export default {
   name: "App",
-  components: {
-    FacedleMain,
-  },
 };
 </script>
 
