@@ -10,7 +10,7 @@ state_store = FileOAuthStateStore(expiration_seconds=300)
 scopes = ["openid", "profile"]
 
 
-slack_api = Blueprint('slack_api', __name__)
+slack_api = Blueprint("slack_api", __name__)
 
 
 @slack_api.route("/slack/login", methods=["GET"])
@@ -25,9 +25,7 @@ def oauth_start():
     )
     state = state_store.issue()
     url = authorization_url_generator.generate(state=state)
-    result = jsonify({
-        "redirect_url": url
-    })
+    result = jsonify({"redirect_url": url})
     result.headers.add("Access-Control-Allow-Origin", "*")
     return result
 
@@ -48,7 +46,9 @@ def oauth_callback():
             )
             print(f"openid.connect.token response: {token_response}")
             id_token = token_response.get("id_token")
-            claims = jwt.decode(id_token, options={"verify_signature": False}, algorithms=["RS256"])
+            claims = jwt.decode(
+                id_token, options={"verify_signature": False}, algorithms=["RS256"]
+            )
             print(f"claims (decoded id_token): {claims}")
 
             user_token = token_response.get("access_token")

@@ -8,7 +8,7 @@
         type="error"
         :style="{ maxWidth: '50%', margin: 'auto' }"
       >
-        Check that your VPN is enabled
+        The server was unavailable or returned an error
       </n-alert>
     </div>
     <template v-if="loaded">

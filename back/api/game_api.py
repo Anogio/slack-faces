@@ -8,7 +8,8 @@ from domain.models import GameState
 from domain import game_logic
 
 
-game_api = Blueprint('game_api', __name__)
+game_api = Blueprint("game_api", __name__)
+
 
 @game_api.route("/start_game", methods=["GET"])
 def start_game():
