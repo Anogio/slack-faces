@@ -1,6 +1,5 @@
 import flask
-from flask import Flask
-from flask import abort, request
+from flask import abort, request, Blueprint
 from flask_cors import cross_origin
 
 from constants import QUESTIONS_PER_DAY, N_TRIES_ALLOWED
@@ -8,10 +7,10 @@ from utils import image_utils
 from domain.models import GameState
 from domain import game_logic
 
-app = Flask(__name__)
 
+game_api = Blueprint('game_api', __name__)
 
-@app.route("/start_game", methods=["GET"])
+@game_api.route("/start_game", methods=["GET"])
 def start_game():
     initial_game_state, all_names = game_logic.get_initial_game_state_and_options()
 
@@ -28,7 +27,7 @@ def start_game():
     return result
 
 
-@app.route("/guessable_picture", methods=["GET"])
+@game_api.route("/guessable_picture", methods=["GET"])
 def pixelated_image():
     args = request.args
     if "game_state" not in args:
@@ -48,7 +47,7 @@ def pixelated_image():
     return image_utils.send_picture_file(picture_to_guess)
 
 
-@app.route("/submit", methods=["POST"])
+@game_api.route("/submit", methods=["POST"])
 @cross_origin()
 def submit():
     payload = request.json
