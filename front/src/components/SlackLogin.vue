@@ -1,6 +1,6 @@
 <template>
   <a
-    href="https://slack.com/oauth/v2/authorize?scope=users:read&user_scope=users:read,profile&redirect_uri=https%3A%2F%2Flocalhost&client_id=20725405907.4331386221344"
+    @click="startSlackLogin"
     style="
       align-items: center;
       color: #000;
@@ -42,8 +42,41 @@
 </template>
 
 <script>
+import { SERVER_URL, APP_URL } from "@/constants";
+
 export default {
   name: "App",
+  methods: {
+    async startSlackLogin() {
+      const redirectURI = `${APP_URL}/login`;
+
+      const response = await this.fetchWithTimeout(
+        `${SERVER_URL}/slack/login?redirect_uri=${encodeURIComponent(
+          redirectURI
+        )}`,
+        5000
+      );
+      const payload = await response.json();
+      window.location.href = payload.redirect_url;
+    },
+    async fetchWithTimeout(url, ms, { ...options } = {}) {
+      let timeout;
+      let result;
+      try {
+        const controller = new AbortController();
+        const promise = fetch(url, { signal: controller.signal, ...options });
+        timeout = setTimeout(() => controller.abort(), ms);
+        result = await promise;
+      } catch (error) {
+        console.error(error);
+      } finally {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+      }
+      return result;
+    },
+  },
 };
 </script>
 

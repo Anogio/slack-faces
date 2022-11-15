@@ -99,11 +99,10 @@ import { Clipboard } from "@vicons/ionicons5";
 import Loading from "vue-loading-overlay";
 import "vue-loading-overlay/dist/css/index.css";
 
+import { SERVER_URL, APP_URL } from "@/constants";
+
 const EXACT_MATCH = "exact";
 const PARTIAL_MATCH = "partial";
-
-const SERVER_URL = "http://127.0.0.1:5000";
-const APP_URL = "https://www.facedle.anog.fr";
 
 function today() {
   const date = new Date();
@@ -120,7 +119,7 @@ export default {
   data: () => {
     return {
       // These are constants for the game rules
-      maxTries: null,
+      maxTries: null, // initialized with the server's information
       EXACT_MATCH,
       // These help maintain some basic state but are reset on every app load
       dayOnAppLoad: today(),
@@ -139,6 +138,7 @@ export default {
       this.localGameState = existingState.localGameState;
       this.options = existingState.options;
       this.encryptedGameState = existingState.encryptedGameState;
+      this.maxTries = existingState.maxTries;
     } else {
       const response = await this.fetchWithTimeout(
         `${SERVER_URL}/start_game`,
@@ -282,6 +282,7 @@ export default {
           gameFinished: this.gameFinished,
           options: this.options,
           encryptedGameState: this.encryptedGameState,
+          maxTries: this.maxTries,
         })
       );
     },
