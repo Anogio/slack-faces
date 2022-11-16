@@ -69,12 +69,30 @@
               : "You lost ! Try again tomorrow :)"
           }}
         </h3>
-        <n-button type="info" @click="copyShareableSummary" size="large" round>
+        <n-button
+          type="info"
+          @click="copyShareableSummary"
+          size="large"
+          round
+          v-if="canShare"
+        >
           <template #icon>
             <n-icon> <clipboard /> </n-icon>
           </template>
           {{ shared ? "Copied !" : "Share the results" }}</n-button
         >
+        <div v-else>
+          <br />
+          <b>
+            Share your results (the copy button is disabled when https is
+            unavailable):
+          </b>
+          <n-alert
+            :style="{ maxWidth: '50%', margin: 'auto', textAlign: 'center' }"
+          >
+            <pre>{{ gameSummary }}</pre>
+          </n-alert>
+        </div>
       </div>
       <div v-else>
         <n-statistic
@@ -168,6 +186,10 @@ export default {
     canSubmit() {
       return this.localGameState.every((el) => el.guess !== null);
     },
+    canShare() {
+      // Clipboard copying is forbidden outside secure (https) context
+      return !!navigator.clipboard;
+    },
     nTries() {
       return this.localGameState.length
         ? this.localGameState[0].pastGuesses.length
@@ -185,6 +207,32 @@ export default {
     },
     gameFinished() {
       return this.gameWon || this.nTries === this.maxTries;
+    },
+    gameSummary() {
+      if (!this.gameFinished) {
+        return "";
+      }
+      let summaryString = `Facedle ${this.dayOnAppLoad} - ${
+        this.gameWon ? this.nTries : "💀"
+      }/${this.maxTries}\n\n`;
+      for (let i = 0; i < this.nTries; i++) {
+        this.localGameState.forEach((p) => {
+          let match = p.pastGuesses[i].match;
+          let marker =
+            match === EXACT_MATCH
+              ? "🟩"
+              : match === PARTIAL_MATCH
+              ? "🟨"
+              : "⬛";
+          summaryString = summaryString + marker;
+        });
+        summaryString = summaryString + (i === this.nTries - 1 ? "" : "\n");
+      }
+      if (this.gameWon) {
+        summaryString = summaryString + "🎉";
+      }
+      summaryString = summaryString + `\n\n${APP_URL}`;
+      return summaryString;
     },
   },
   methods: {
@@ -232,31 +280,8 @@ export default {
       });
       this.storeAppState();
     },
-    computeSummary() {
-      let summaryString = `Facedle ${this.dayOnAppLoad} - ${
-        this.gameWon ? this.nTries : "💀"
-      }/${this.maxTries}\n\n`;
-      for (let i = 0; i < this.nTries; i++) {
-        this.localGameState.forEach((p) => {
-          let match = p.pastGuesses[i].match;
-          let marker =
-            match === EXACT_MATCH
-              ? "🟩"
-              : match === PARTIAL_MATCH
-              ? "🟨"
-              : "⬛";
-          summaryString = summaryString + marker;
-        });
-        summaryString = summaryString + (i === this.nTries - 1 ? "" : "\n");
-      }
-      if (this.gameWon) {
-        summaryString = summaryString + "🎉";
-      }
-      summaryString = summaryString + `\n\n${APP_URL}`;
-      return summaryString;
-    },
     copyShareableSummary() {
-      navigator.clipboard.writeText(this.computeSummary());
+      navigator.clipboard.writeText(this.gameSummary);
       this.shared = true;
     },
     normalizeFilterValue(text) {
